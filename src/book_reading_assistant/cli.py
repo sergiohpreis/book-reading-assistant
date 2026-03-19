@@ -50,6 +50,10 @@ def analyze_cmd(
         str | None,
         typer.Option("--library-dir", help="Reference PDFs directory"),
     ] = None,
+    ref_pages: Annotated[
+        str | None,
+        typer.Option("--ref-pages", help="Page range for reference PDFs"),
+    ] = None,
     no_save: Annotated[
         bool, typer.Option("--no-save", help="Don't save output to file")
     ] = False,
@@ -80,6 +84,7 @@ def analyze_cmd(
                 pages=pages,
                 model=model,
                 library_dir=library_dir,
+                ref_pages=ref_pages,
             )
     except TokenBudgetError as e:
         console.print(f"[red]{e}[/red]")

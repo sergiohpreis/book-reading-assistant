@@ -59,6 +59,7 @@ def analyze(
     pages: str | None = None,
     model: str | None = None,
     library_dir: str | None = None,
+    ref_pages: str | None = None,
 ) -> AnalysisResult:
     """Run the full analysis pipeline."""
     settings = settings or get_settings()
@@ -76,24 +77,36 @@ def analyze(
     if not notes_text.strip():
         raise ValueError(f"Notes file is empty: {notes_path}")
 
-    # Token estimation (skip if using --pages since that reduces tokens)
-    if not pages:
-        estimated = estimate_total_tokens(ref_pdfs, book_pdf, notes_text)
-        if estimated > settings.max_tokens:
-            raise TokenBudgetError(estimated, settings.max_tokens)
+    # Token estimation
+    estimated = estimate_total_tokens(ref_pdfs, book_pdf, notes_text)
+    if not pages and estimated > settings.max_tokens:
+        raise TokenBudgetError(estimated, settings.max_tokens)
 
     # Build API request
     system_prompt = build_system_prompt()
-    user_content = build_user_content(ref_pdfs, book_pdf, notes_text, pages=pages)
+    user_content = build_user_content(
+        ref_pdfs, book_pdf, notes_text, pages=pages, ref_pages=ref_pages,
+    )
 
     # Call Claude API
     client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-    response = client.messages.create(
-        model=model,
-        max_tokens=16_384,
-        system=system_prompt,
-        messages=[{"role": "user", "content": user_content}],
-    )
+    try:
+        response = client.messages.create(
+            model=model,
+            max_tokens=16_384,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_content}],
+        )
+    except anthropic.APIStatusError as e:
+        if e.status_code == 413:
+            ref_names = ", ".join(p.name for p in ref_pdfs)
+            raise ValueError(
+                "Request too large for the API. Try:\n"
+                "  - Use --pages to select fewer book pages\n"
+                "  - Use smaller reference PDFs\n"
+                f"  Current references: {ref_names}"
+            ) from None
+        raise
 
     # Extract result
     content = ""

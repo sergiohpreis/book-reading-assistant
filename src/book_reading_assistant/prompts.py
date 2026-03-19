@@ -47,6 +47,7 @@ def build_user_content(
     notes_text: str,
     *,
     pages: str | None = None,
+    ref_pages: str | None = None,
 ) -> list[dict]:
     """Build the user message content blocks for the Claude API.
 
@@ -58,9 +59,26 @@ def build_user_content(
     # Reference PDFs with cache_control on the last one
     for i, ref_path in enumerate(ref_pdfs):
         is_last_ref = i == len(ref_pdfs) - 1
-        content.append(
-            build_pdf_content_block(ref_path, cache_control=is_last_ref)
-        )
+        if ref_pages:
+            total = get_page_count(ref_path)
+            page_list = parse_page_ranges(ref_pages, total)
+            text = extract_text(ref_path, page_list)
+            block: dict = {
+                "type": "text",
+                "text": (
+                    f"## Reference: {ref_path.name} "
+                    f"(pages: {ref_pages})\n\n{text}"
+                ),
+            }
+            if is_last_ref:
+                block["cache_control"] = {"type": "ephemeral"}
+            content.append(block)
+        else:
+            content.append(
+                build_pdf_content_block(
+                    ref_path, cache_control=is_last_ref,
+                )
+            )
 
     # Book PDF (with optional page filtering via text extraction)
     if pages:
