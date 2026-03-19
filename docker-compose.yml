@@ -1,0 +1,14 @@
+services:
+  notes:
+    build:
+      context: .
+      target: dev
+    volumes:
+      - .:/app
+      - ./data:/data
+      - library:/root/.config/book-reading-assistant/library
+    env_file: .env
+    entrypoint: ["uv", "run", "notes"]
+
+volumes:
+  library:
