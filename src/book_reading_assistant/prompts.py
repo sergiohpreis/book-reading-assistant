@@ -41,6 +41,26 @@ def build_system_prompt() -> str:
     return SYSTEM_PROMPT
 
 
+def _parse_ref_pages(ref_pages: str) -> dict[str, str]:
+    """Parse ref-pages spec into a mapping of filename to page range.
+
+    Format: "file.pdf:1-30" or "file.pdf:1-30,50-60;other.pdf:10-50"
+    Multiple files separated by ";", page ranges by ",".
+    """
+    result: dict[str, str] = {}
+    for entry in ref_pages.split(";"):
+        entry = entry.strip()
+        if ":" not in entry:
+            continue
+        # Split on first colon only (filenames may not contain ":")
+        name, page_spec = entry.split(":", 1)
+        name = name.strip()
+        page_spec = page_spec.strip()
+        if name and page_spec:
+            result[name] = page_spec
+    return result
+
+
 def build_user_content(
     ref_pdfs: list[Path],
     book_pdf: Path,
@@ -57,17 +77,21 @@ def build_user_content(
     content: list[dict] = []
 
     # Reference PDFs with cache_control on the last one
+    ref_page_map = _parse_ref_pages(ref_pages) if ref_pages else {}
+
     for i, ref_path in enumerate(ref_pdfs):
         is_last_ref = i == len(ref_pdfs) - 1
-        if ref_pages:
+        page_spec = ref_page_map.get(ref_path.name)
+
+        if page_spec:
             total = get_page_count(ref_path)
-            page_list = parse_page_ranges(ref_pages, total)
+            page_list = parse_page_ranges(page_spec, total)
             text = extract_text(ref_path, page_list)
             block: dict = {
                 "type": "text",
                 "text": (
                     f"## Reference: {ref_path.name} "
-                    f"(pages: {ref_pages})\n\n{text}"
+                    f"(pages: {page_spec})\n\n{text}"
                 ),
             }
             if is_last_ref:

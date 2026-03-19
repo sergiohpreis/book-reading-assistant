@@ -1,7 +1,11 @@
 """Tests for prompt construction."""
 
 
-from book_reading_assistant.prompts import build_system_prompt, build_user_content
+from book_reading_assistant.prompts import (
+    _parse_ref_pages,
+    build_system_prompt,
+    build_user_content,
+)
 
 
 def test_build_system_prompt():
@@ -69,4 +73,47 @@ def test_build_user_content_single_ref(tmp_path):
         p.write_bytes(pdf_content)
 
     content = build_user_content([ref], book, "Notes")
+    assert content[0]["cache_control"] == {"type": "ephemeral"}
+
+
+def test_parse_ref_pages_single():
+    result = _parse_ref_pages("file.pdf:1-30")
+    assert result == {"file.pdf": "1-30"}
+
+
+def test_parse_ref_pages_multiple():
+    result = _parse_ref_pages("a.pdf:1-30,50-60;b.pdf:10-20")
+    assert result == {"a.pdf": "1-30,50-60", "b.pdf": "10-20"}
+
+
+def test_parse_ref_pages_with_spaces():
+    result = _parse_ref_pages("my file.pdf:1-10 ; other.pdf:5-15")
+    assert result == {"my file.pdf": "1-10", "other.pdf": "5-15"}
+
+
+def test_build_user_content_with_ref_pages(tmp_path):
+    pdf_content = (
+        b"%PDF-1.4\n"
+        b"1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+        b"2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
+        b"3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R>>endobj\n"
+        b"xref\n0 4\n"
+        b"0000000000 65535 f \n"
+        b"0000000009 00000 n \n"
+        b"0000000058 00000 n \n"
+        b"0000000115 00000 n \n"
+        b"trailer<</Size 4/Root 1 0 R>>\n"
+        b"startxref\n193\n%%EOF"
+    )
+    ref = tmp_path / "ref.pdf"
+    book = tmp_path / "book.pdf"
+    for p in [ref, book]:
+        p.write_bytes(pdf_content)
+
+    content = build_user_content(
+        [ref], book, "Notes", ref_pages="ref.pdf:1"
+    )
+    # ref with pages becomes text block, not document
+    assert content[0]["type"] == "text"
+    assert "ref.pdf" in content[0]["text"]
     assert content[0]["cache_control"] == {"type": "ephemeral"}

@@ -52,7 +52,10 @@ def analyze_cmd(
     ] = None,
     ref_pages: Annotated[
         str | None,
-        typer.Option("--ref-pages", help="Page range for reference PDFs"),
+        typer.Option(
+            "--ref-pages",
+            help="Page ranges per reference (e.g. 'file.pdf:1-30;other.pdf:10-50')",
+        ),
     ] = None,
     no_save: Annotated[
         bool, typer.Option("--no-save", help="Don't save output to file")
