@@ -1,0 +1,10 @@
+services:
+  notes:
+    build:
+      context: .
+      target: dev
+    volumes:
+      - .:/app
+      - ./data:/data
+    env_file: .env
+    entrypoint: ["uv", "run", "notes"]
