@@ -117,3 +117,28 @@ def test_analyze_success(mock_anthropic_cls, setup_files):
     assert result.book_name == "book"
     assert result.input_tokens == 1000
     assert result.output_tokens == 500
+
+
+@patch("book_reading_assistant.analyzer.anthropic.Anthropic")
+def test_analyze_with_library_dir(mock_anthropic_cls, setup_files):
+    book, notes, ref = setup_files
+
+    mock_response = MagicMock()
+    mock_response.content = [MagicMock(type="text", text="Analysis")]
+    mock_response.usage.input_tokens = 100
+    mock_response.usage.output_tokens = 50
+
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = mock_response
+    mock_anthropic_cls.return_value = mock_client
+
+    settings = Settings(
+        anthropic_api_key="test-key",
+        library_dir=str(ref.parent / "other"),
+        max_tokens=200_000,
+    )
+
+    result = analyze(
+        book, notes, settings=settings, library_dir=str(ref.parent)
+    )
+    assert result.content == "Analysis"

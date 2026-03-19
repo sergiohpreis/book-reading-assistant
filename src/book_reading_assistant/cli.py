@@ -46,6 +46,10 @@ def analyze_cmd(
         str | None,
         typer.Option("--pages", help="Page range (e.g. '1-50,100-150')"),
     ] = None,
+    library_dir: Annotated[
+        str | None,
+        typer.Option("--library-dir", help="Reference PDFs directory"),
+    ] = None,
     no_save: Annotated[
         bool, typer.Option("--no-save", help="Don't save output to file")
     ] = False,
@@ -70,7 +74,12 @@ def analyze_cmd(
     try:
         with console.status("Analyzing reading notes..."):
             result = analyze(
-                book_pdf, notes, settings=settings, pages=pages, model=model
+                book_pdf,
+                notes,
+                settings=settings,
+                pages=pages,
+                model=model,
+                library_dir=library_dir,
             )
     except TokenBudgetError as e:
         console.print(f"[red]{e}[/red]")

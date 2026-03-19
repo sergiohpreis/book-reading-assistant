@@ -59,6 +59,7 @@ uv run notes analyze book.pdf my-notes.md --pages 1-50,100-150
 | `--output-dir` | Custom output directory (default: `./output`) |
 | `--model` | Claude model to use |
 | `--pages` | Page range (e.g. `1-50,100-150`) |
+| `--library-dir` | Reference PDFs directory (overrides config) |
 | `--no-save` | Don't save output to file |
 
 ## Other commands

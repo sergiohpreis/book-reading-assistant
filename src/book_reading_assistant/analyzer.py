@@ -58,13 +58,15 @@ def analyze(
     settings: Settings | None = None,
     pages: str | None = None,
     model: str | None = None,
+    library_dir: str | None = None,
 ) -> AnalysisResult:
     """Run the full analysis pipeline."""
     settings = settings or get_settings()
     model = model or settings.model
 
     # Load inputs
-    ref_pdfs = get_all_pdfs(Path(settings.library_dir))
+    lib_path = Path(library_dir) if library_dir else Path(settings.library_dir)
+    ref_pdfs = get_all_pdfs(lib_path)
     if not ref_pdfs:
         raise ValueError(
             "No reference PDFs in library. Add some with: notes library add <PDF>"
